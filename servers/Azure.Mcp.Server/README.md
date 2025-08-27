@@ -269,6 +269,11 @@ The Azure MCP Server supercharges your agents with Azure context. Here are some 
 
 * List role assignments
 
+
+### 🖥️ Azure App Service (Database Management)
+
+* Add database connection for App Service web app
+
 ### 🚌 Azure Service Bus
 
 * Examine properties and runtime information about queues, topics, and subscriptions
