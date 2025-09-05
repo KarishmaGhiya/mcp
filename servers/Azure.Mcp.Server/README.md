@@ -272,7 +272,7 @@ The Azure MCP Server supercharges your agents with Azure context. Here are some 
 
 ### 🖥️ Azure App Service (Database Management)
 
-* Add database connection for App Service web app
+* Add a database connection for an App Service web app
 
 ### 🚌 Azure Service Bus
 
