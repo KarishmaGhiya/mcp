@@ -4,6 +4,7 @@ import { generateApiView } from "./generate";
 import { CrossLanguageMetadata } from "./models";
 
 function getPackageVersion(fileName: string) {
+  console.log("Extracting package version from file name:", fileName);
   const match = fileName.match(/.*_(?<version>.*)\.api\.json/);
   return match?.length > 0 ? match.groups["version"] : undefined;
 }
