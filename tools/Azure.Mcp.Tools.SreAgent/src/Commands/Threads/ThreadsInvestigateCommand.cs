@@ -1,47 +1,27 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using Azure.Mcp.Core.Commands.Subscription;
+using Azure.Mcp.Core.Services.Azure.Subscription;
 using Azure.Mcp.Tools.SreAgent.Models;
 using Azure.Mcp.Tools.SreAgent.Options;
 using Azure.Mcp.Tools.SreAgent.Options.Threads;
 using Azure.Mcp.Tools.SreAgent.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Mcp.Core.Commands;
-using Microsoft.Mcp.Core.Extensions;
 using Microsoft.Mcp.Core.Models.Command;
 
 namespace Azure.Mcp.Tools.SreAgent.Commands.Threads;
 
 [CommandMetadata(Id = "ab73d6fa-d53e-446c-9d4c-9d8cf41a3106", Name = "investigate-with-agent", Title = "Investigate With Agent", Description = "Start an investigation thread and automatically answer direction follow-ups.", Destructive = false, Idempotent = false, OpenWorld = true, ReadOnly = false, Secret = false, LocalRequired = false)]
-public class ThreadsInvestigateCommand(ILogger<ThreadsInvestigateCommand> logger, ISreAgentService sreAgentService) : ThreadsCommandBase<ThreadsInvestigateOptions>
+public class ThreadsInvestigateCommand(ILogger<ThreadsInvestigateCommand> logger, ISreAgentService sreAgentService, ISubscriptionResolver subscriptionResolver)
+    : ThreadsCommandBase<ThreadsInvestigateOptions, SreAgentInvestigationResult>(subscriptionResolver)
 {
     private readonly ILogger<ThreadsInvestigateCommand> _logger = logger;
     private readonly ISreAgentService _sreAgentService = sreAgentService;
 
-    protected override void RegisterOptions(Command command)
+    public override async Task<CommandResponse> ExecuteAsync(CommandContext context, ThreadsInvestigateOptions options, CancellationToken cancellationToken)
     {
-        base.RegisterOptions(command);
-        command.Options.Add(SreAgentOptionDefinitions.Message);
-        command.Options.Add(SreAgentOptionDefinitions.MaxIterations);
-        command.Options.Add(SreAgentOptionDefinitions.TimeoutSeconds);
-    }
-
-    protected override ThreadsInvestigateOptions BindOptions(ParseResult parseResult)
-    {
-        var options = base.BindOptions(parseResult);
-        options.Message = parseResult.GetValueOrDefault<string>(SreAgentOptionDefinitions.Message.Name);
-        options.MaxIterations = parseResult.GetValueOrDefault<int>(SreAgentOptionDefinitions.MaxIterations.Name);
-        options.TimeoutSeconds = parseResult.GetValueOrDefault<int>(SreAgentOptionDefinitions.TimeoutSeconds.Name);
-        return options;
-    }
-
-    public override async Task<CommandResponse> ExecuteAsync(CommandContext context, ParseResult parseResult, CancellationToken cancellationToken)
-    {
-        if (!Validate(parseResult.CommandResult, context.Response).IsValid)
-        {
-            return context.Response;
-        }
-        var options = BindOptions(parseResult);
         try
         {
             var result = await RunInvestigationAsync(options, autoApprove: false, cancellationToken);
@@ -57,7 +37,7 @@ public class ThreadsInvestigateCommand(ILogger<ThreadsInvestigateCommand> logger
 
     internal async Task<SreAgentInvestigationResult> RunInvestigationAsync(ThreadsInvestigateOptions options, bool autoApprove, CancellationToken cancellationToken)
     {
-        var endpoint = await ResolveEndpointAsync(_sreAgentService, options, cancellationToken);
+        var endpoint = await SreAgentCommandHelpers.ResolveAgentEndpointAsync(_sreAgentService, options, cancellationToken);
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         timeout.CancelAfter(TimeSpan.FromSeconds(Math.Max(1, options.TimeoutSeconds)));
 

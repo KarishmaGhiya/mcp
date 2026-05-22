@@ -42,7 +42,7 @@ internal static class SreAgentCommandHelpers
 
     public static Task<string> ResolveAgentEndpointAsync(
         ISreAgentService sreAgentService,
-        BaseSreAgentOptions options,
+        ISreAgentOption options,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -59,14 +59,9 @@ internal static class SreAgentCommandHelpers
             cancellationToken);
     }
 
-    /// <summary>
-    /// Returns the resource group containing the agent, falling back to a Resource Graph lookup
-    /// when the caller did not supply <c>--resource-group</c>. Used by ARM-based connector
-    /// commands which need the RG as part of the resource path.
-    /// </summary>
     public static async Task<string> ResolveAgentResourceGroupAsync(
         ISreAgentService sreAgentService,
-        BaseSreAgentOptions options,
+        ISreAgentOption options,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(options);

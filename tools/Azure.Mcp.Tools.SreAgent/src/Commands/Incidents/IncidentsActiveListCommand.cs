@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using Azure.Mcp.Core.Commands.Subscription;
+using Azure.Mcp.Core.Services.Azure.Subscription;
 using Azure.Mcp.Tools.SreAgent.Models;
 using Azure.Mcp.Tools.SreAgent.Options;
 using Azure.Mcp.Tools.SreAgent.Options.Incidents;
@@ -12,20 +14,18 @@ using Microsoft.Mcp.Core.Models.Command;
 namespace Azure.Mcp.Tools.SreAgent.Commands.Incidents;
 
 [CommandMetadata(Id = "659a3697-9c8c-46e1-b568-9b929d637cb4", Name = "list", Title = "List Active Incidents", Description = "List active incident-like threads.", Destructive = false, Idempotent = true, OpenWorld = false, ReadOnly = true, Secret = false, LocalRequired = false)]
-public sealed class IncidentsActiveListCommand(ILogger<IncidentsActiveListCommand> logger, ISreAgentService sreAgentService) : SreAgentDataPlaneCommand<IncidentRemoteOptions>
+public sealed class IncidentsActiveListCommand(ILogger<IncidentsActiveListCommand> logger, ISreAgentService sreAgentService, ISubscriptionResolver subscriptionResolver)
+    : SubscriptionCommand<IncidentRemoteOptions, SreAgentTextResult>(subscriptionResolver)
 {
     private readonly ILogger<IncidentsActiveListCommand> _logger = logger;
     private readonly ISreAgentService _sreAgentService = sreAgentService;
 
-    public override async Task<CommandResponse> ExecuteAsync(CommandContext context, ParseResult parseResult, CancellationToken cancellationToken)
+    public override async Task<CommandResponse> ExecuteAsync(CommandContext context, IncidentRemoteOptions options, CancellationToken cancellationToken)
     {
-        if (!Validate(parseResult.CommandResult, context.Response).IsValid)
-            return context.Response;
-        var o = BindOptions(parseResult);
         try
         {
-            var endpoint = await ResolveEndpointAsync(_sreAgentService, o, cancellationToken);
-            var threads = await _sreAgentService.ListIncidentThreadsAsync(endpoint, o.Tenant, cancellationToken);
+            var endpoint = await SreAgentCommandHelpers.ResolveAgentEndpointAsync(_sreAgentService, options, cancellationToken);
+            var threads = await _sreAgentService.ListIncidentThreadsAsync(endpoint, options.Tenant, cancellationToken);
             var keywords = new[] { "incident", "🚨", "outage", "alert", "critical", "crash", "failure" };
             var incidents = threads.Where(t =>
                 !string.IsNullOrWhiteSpace(t.Status?.IncidentStatus?.IncidentId)

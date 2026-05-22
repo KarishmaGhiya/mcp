@@ -2,15 +2,15 @@
 // Licensed under the MIT License.
 
 using System.Text.Json;
+using Azure.Mcp.Core.Commands.Subscription;
+using Azure.Mcp.Core.Services.Azure.Subscription;
 using Azure.Mcp.Tools.SreAgent.Models;
 using Azure.Mcp.Tools.SreAgent.Options;
 using Azure.Mcp.Tools.SreAgent.Options.Agents;
 using Azure.Mcp.Tools.SreAgent.Services;
 using Microsoft.Extensions.Logging;
 using Microsoft.Mcp.Core.Commands;
-using Microsoft.Mcp.Core.Extensions;
 using Microsoft.Mcp.Core.Models.Command;
-using Microsoft.Mcp.Core.Models.Option;
 
 namespace Azure.Mcp.Tools.SreAgent.Commands.Agents;
 
@@ -25,49 +25,14 @@ namespace Azure.Mcp.Tools.SreAgent.Commands.Agents;
     ReadOnly = false,
     Secret = false,
     LocalRequired = false)]
-public sealed class AgentsToolsCreateCommand(ILogger<AgentsToolsCreateCommand> logger, ISreAgentService sreAgentService)
-    : BaseSreAgentCommand<AgentsToolsCreateOptions>
+public sealed class AgentsToolsCreateCommand(ILogger<AgentsToolsCreateCommand> logger, ISreAgentService sreAgentService, ISubscriptionResolver subscriptionResolver)
+    : SubscriptionCommand<AgentsToolsCreateOptions, AgentsToolsCreateCommand.AgentsToolsCreateCommandResult>(subscriptionResolver)
 {
     private readonly ILogger<AgentsToolsCreateCommand> _logger = logger;
     private readonly ISreAgentService _sreAgentService = sreAgentService;
 
-    protected override void RegisterOptions(Command command)
+    public override async Task<CommandResponse> ExecuteAsync(CommandContext context, AgentsToolsCreateOptions options, CancellationToken cancellationToken)
     {
-        base.RegisterOptions(command);
-        command.Options.Add(SreAgentOptionDefinitions.Agent.AsRequired());
-        command.Options.Add(SreAgentOptionDefinitions.Name);
-        command.Options.Add(SreAgentOptionDefinitions.ToolType);
-        command.Options.Add(SreAgentOptionDefinitions.Description);
-        command.Options.Add(SreAgentOptionDefinitions.Connector);
-        command.Options.Add(SreAgentOptionDefinitions.Database);
-        command.Options.Add(SreAgentOptionDefinitions.Query);
-        command.Options.Add(SreAgentOptionDefinitions.UrlTemplate);
-        command.Options.Add(SreAgentOptionDefinitions.Parameters);
-    }
-
-    protected override AgentsToolsCreateOptions BindOptions(ParseResult parseResult)
-    {
-        var options = base.BindOptions(parseResult);
-        options.Agent = parseResult.GetValueOrDefault<string>(SreAgentOptionDefinitions.Agent.Name);
-        options.Name = parseResult.GetValueOrDefault<string>(SreAgentOptionDefinitions.Name.Name) ?? string.Empty;
-        options.ToolType = parseResult.GetValueOrDefault<string>(SreAgentOptionDefinitions.ToolType.Name);
-        options.Description = parseResult.GetValueOrDefault<string>(SreAgentOptionDefinitions.Description.Name);
-        options.Connector = parseResult.GetValueOrDefault<string>(SreAgentOptionDefinitions.Connector.Name);
-        options.Database = parseResult.GetValueOrDefault<string>(SreAgentOptionDefinitions.Database.Name);
-        options.Query = parseResult.GetValueOrDefault<string>(SreAgentOptionDefinitions.Query.Name);
-        options.UrlTemplate = parseResult.GetValueOrDefault<string>(SreAgentOptionDefinitions.UrlTemplate.Name);
-        options.Parameters = parseResult.GetValueOrDefault<string>(SreAgentOptionDefinitions.Parameters.Name);
-        return options;
-    }
-
-    public override async Task<CommandResponse> ExecuteAsync(CommandContext context, ParseResult parseResult, CancellationToken cancellationToken)
-    {
-        if (!Validate(parseResult.CommandResult, context.Response).IsValid)
-        {
-            return context.Response;
-        }
-
-        var options = BindOptions(parseResult);
 
         try
         {
@@ -129,5 +94,5 @@ public sealed class AgentsToolsCreateCommand(ILogger<AgentsToolsCreateCommand> l
         return properties;
     }
 
-    internal record AgentsToolsCreateCommandResult(SreAgentTool Tool);
+    public record AgentsToolsCreateCommandResult(SreAgentTool Tool);
 }
